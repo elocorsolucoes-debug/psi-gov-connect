@@ -29,11 +29,27 @@ export const unstable_settings = {
 
 function AuthGate() {
   const { user, loading } = useAuth();
+  
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/auth/login' as any);
     }
   }, [user, loading]);
+  
+  // Show loading screen while authenticating
+  if (loading) {
+    return <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="loading" />
+    </Stack>;
+  }
+  
+  // Show login if no user
+  if (!user) {
+    return <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="auth/login" />
+    </Stack>;
+  }
+  
   return null;
 }
 
