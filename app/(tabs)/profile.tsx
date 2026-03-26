@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
@@ -10,18 +11,100 @@ import { useAuth } from '../../src/context/AuthContext';
 import { logout } from '../../src/services/auth.service';
 import { updateUserProfile } from '../../src/services/user.service';
 
+const { width } = Dimensions.get('window');
+
 const ROLE_LABELS: Record<string, string> = {
-  ADMIN_IPT:       'Administrador IPT',
-  ADMIN:           'Administrador',
-  PREFEITO:        'Prefeito',
-  SECRETARIO:      'Secretário',
-  AUDITOR:         'Auditor',
-  COORDENADOR:     'Coordenador',
-  GESTOR:          'Gestor',
-  SERVIDOR_PUBLICO:'Servidor Público',
-  TECNICO:         'Técnico',
-  TERCEIROS:       'Terceiros',
+  ADMIN_IPT: 'Administrador IPT',
+  ADMIN: 'Administrador',
+  PREFEITO: 'Prefeito',
+  SECRETARIO: 'Secretário',
+  AUDITOR: 'Auditor',
+  COORDENADOR: 'Coordenador',
+  GESTOR: 'Gestor',
+  SERVIDOR_PUBLICO: 'Servidor Público',
+  TECNICO: 'Técnico',
+  TERCEIROS: 'Terceiros',
 };
+
+function ProfileHeader({ profile, colors, onEditPress }: any) {
+  const initials = `${profile?.firstName?.[0] ?? ''}${profile?.lastName?.[0] ?? ''}`.toUpperCase();
+  const roleLabel = ROLE_LABELS[profile?.role] || profile?.role;
+
+  return (
+    <LinearGradient
+      colors={[colors.primary, colors.secondary]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.headerGradient}
+    >
+      <View style={styles.headerContent}>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.profileName}>
+            {profile?.firstName} {profile?.lastName}
+          </Text>
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleEmoji}>👔</Text>
+            <Text style={styles.roleLabel}>{roleLabel}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity onPress={onEditPress} style={styles.editButton}>
+          <Text style={styles.editButtonText}>✎</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
+}
+
+function ProfileField({ label, value, colors, editable, onChangeText }: any) {
+  return (
+    <View style={styles.fieldContainer}>
+      <Text style={[styles.fieldLabel, { color: colors.muted }]}>{label}</Text>
+      <TextInput
+        style={[
+          styles.fieldInput,
+          {
+            backgroundColor: colors.background,
+            borderColor: colors.border,
+            color: colors.foreground,
+          },
+        ]}
+        value={value}
+        onChangeText={onChangeText}
+        editable={editable}
+        placeholderTextColor={colors.muted}
+      />
+    </View>
+  );
+}
+
+function InfoCard({ icon, label, value, colors }: any) {
+  return (
+    <View
+      style={[
+        styles.infoCard,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Text style={{ fontSize: 20 }}>{icon}</Text>
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text style={[styles.infoLabel, { color: colors.muted }]}>{label}</Text>
+        <Text style={[styles.infoValue, { color: colors.foreground }]}>
+          {value || '—'}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -34,13 +117,16 @@ export default function ProfileScreen() {
   const [cpf, setCpf] = useState(profile?.cpf ?? '');
   const [saving, setSaving] = useState(false);
 
-  const initials = `${profile?.firstName?.[0] ?? ''}${profile?.lastName?.[0] ?? ''}`.toUpperCase();
-
   const handleSave = async () => {
     if (!profile) return;
     setSaving(true);
     try {
-      await updateUserProfile(profile.uid, { firstName, lastName, phone, cpf });
+      await updateUserProfile(profile.uid, {
+        firstName,
+        lastName,
+        phone,
+        cpf,
+      });
       await refreshProfile();
       setEditing(false);
       Alert.alert('✅ Salvo!', 'Perfil atualizado com sucesso.');
@@ -52,245 +138,380 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Sair',
-      'Deseja realmente sair da sua conta?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sair',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/auth/login' as any);
-          },
+    Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/auth/login' as any);
         },
-      ],
-    );
+      },
+    ]);
   };
 
-  const s = dynamicStyles(colors);
+  const dynamicStyles = useMemo(() => {
+    return StyleSheet.create({
+      headerTop: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 16,
+      },
+      title: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: colors.foreground,
+        letterSpacing: -0.5,
+      },
+    });
+  }, [colors]);
 
   return (
     <ScreenContainer>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
         {/* Header */}
-        <View style={s.header}>
-          <Text style={s.title}>Perfil</Text>
-          <TouchableOpacity
-            style={[s.editBtn, { borderColor: colors.primary }]}
-            onPress={() => {
-              if (editing) {
-                setFirstName(profile?.firstName ?? '');
-                setLastName(profile?.lastName ?? '');
-                setPhone(profile?.phone ?? '');
-                setCpf(profile?.cpf ?? '');
-              }
-              setEditing(!editing);
-            }}
-          >
-            <Text style={[s.editBtnText, { color: colors.primary }]}>
-              {editing ? 'Cancelar' : 'Editar'}
-            </Text>
-          </TouchableOpacity>
+        <View style={dynamicStyles.headerTop}>
+          <Text style={dynamicStyles.title}>Perfil</Text>
         </View>
 
-        {/* Avatar */}
-        <View style={s.avatarSection}>
-          {profile?.photoURL ? (
-            <View style={[s.avatarCircle, { backgroundColor: colors.primary }]}>
-              <Text style={s.avatarInitials}>{initials}</Text>
-            </View>
-          ) : (
-            <View style={[s.avatarCircle, { backgroundColor: colors.primary }]}>
-              <Text style={s.avatarInitials}>{initials || '?'}</Text>
-            </View>
-          )}
-          <Text style={[s.avatarName, { color: colors.foreground }]}>
-            {profile?.firstName} {profile?.lastName}
-          </Text>
-          <View style={[s.roleBadge, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
-            <Text style={[s.roleText, { color: colors.primary }]}>
-              {ROLE_LABELS[profile?.role ?? ''] ?? profile?.role}
-            </Text>
-          </View>
+        {/* Profile Header Card */}
+        <View style={styles.profileHeaderWrapper}>
+          <ProfileHeader
+            profile={profile}
+            colors={colors}
+            onEditPress={() => setEditing(!editing)}
+          />
         </View>
 
-        {/* Info Card */}
-        <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[s.cardTitle, { color: colors.foreground }]}>Informações Pessoais</Text>
-
-          <View style={s.row}>
-            <View style={s.half}>
-              <Text style={[s.label, { color: colors.muted }]}>Nome</Text>
-              {editing ? (
-                <TextInput
-                  style={[s.input, { color: colors.foreground, borderColor: colors.border }]}
+        {/* Content */}
+        <View style={styles.contentContainer}>
+          {editing ? (
+            <>
+              {/* Edit Mode */}
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                  Dados Pessoais
+                </Text>
+                <ProfileField
+                  label="Primeiro Nome"
                   value={firstName}
                   onChangeText={setFirstName}
-                  placeholder="Nome"
-                  placeholderTextColor={colors.muted}
+                  editable={true}
+                  colors={colors}
                 />
-              ) : (
-                <Text style={[s.value, { color: colors.foreground }]}>{profile?.firstName || '—'}</Text>
-              )}
-            </View>
-            <View style={[s.half, { marginLeft: 12 }]}>
-              <Text style={[s.label, { color: colors.muted }]}>Sobrenome</Text>
-              {editing ? (
-                <TextInput
-                  style={[s.input, { color: colors.foreground, borderColor: colors.border }]}
+                <ProfileField
+                  label="Sobrenome"
                   value={lastName}
                   onChangeText={setLastName}
-                  placeholder="Sobrenome"
-                  placeholderTextColor={colors.muted}
+                  editable={true}
+                  colors={colors}
                 />
-              ) : (
-                <Text style={[s.value, { color: colors.foreground }]}>{profile?.lastName || '—'}</Text>
-              )}
-            </View>
-          </View>
+                <ProfileField
+                  label="Telefone"
+                  value={phone}
+                  onChangeText={setPhone}
+                  editable={true}
+                  colors={colors}
+                />
+                <ProfileField
+                  label="CPF"
+                  value={cpf}
+                  onChangeText={setCpf}
+                  editable={true}
+                  colors={colors}
+                />
+              </View>
 
-          <View style={s.field}>
-            <Text style={[s.label, { color: colors.muted }]}>E-mail</Text>
-            <Text style={[s.value, { color: colors.muted }]}>{profile?.email}</Text>
-            <Text style={[s.immutable, { color: colors.muted }]}>Não editável</Text>
-          </View>
+              {/* Save Button */}
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={saving}
+                style={{ marginHorizontal: 20, marginBottom: 12 }}
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[
+                    styles.saveButton,
+                    { opacity: saving ? 0.6 : 1 },
+                  ]}
+                >
+                  {saving ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
 
-          <View style={s.field}>
-            <Text style={[s.label, { color: colors.muted }]}>Telefone</Text>
-            {editing ? (
-              <TextInput
-                style={[s.input, { color: colors.foreground, borderColor: colors.border }]}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="(00) 00000-0000"
-                placeholderTextColor={colors.muted}
-                keyboardType="phone-pad"
-              />
-            ) : (
-              <Text style={[s.value, { color: colors.foreground }]}>{profile?.phone || '—'}</Text>
-            )}
-          </View>
+              {/* Cancel Button */}
+              <TouchableOpacity
+                onPress={() => setEditing(false)}
+                disabled={saving}
+                style={[
+                  styles.cancelButton,
+                  {
+                    borderColor: colors.border,
+                    marginHorizontal: 20,
+                    marginBottom: 20,
+                  },
+                ]}
+              >
+                <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {/* View Mode */}
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                  Informações
+                </Text>
+                <InfoCard
+                  icon="📧"
+                  label="E-mail"
+                  value={profile?.email}
+                  colors={colors}
+                />
+                <InfoCard
+                  icon="📱"
+                  label="Telefone"
+                  value={profile?.phone}
+                  colors={colors}
+                />
+                <InfoCard
+                  icon="🆔"
+                  label="CPF"
+                  value={profile?.cpf}
+                  colors={colors}
+                />
+                <InfoCard
+                  icon="🏛️"
+                  label="Prefeitura"
+                  value={profile?.prefectureId}
+                  colors={colors}
+                />
+              </View>
 
-          <View style={s.field}>
-            <Text style={[s.label, { color: colors.muted }]}>CPF</Text>
-            {editing ? (
-              <TextInput
-                style={[s.input, { color: colors.foreground, borderColor: colors.border }]}
-                value={cpf}
-                onChangeText={setCpf}
-                placeholder="000.000.000-00"
-                placeholderTextColor={colors.muted}
-                keyboardType="numeric"
-                maxLength={14}
-              />
-            ) : (
-              <Text style={[s.value, { color: colors.foreground }]}>{profile?.cpf || '—'}</Text>
-            )}
-          </View>
+              {/* Action Plans Link */}
+              <TouchableOpacity
+                onPress={() => router.push('/action-plans' as any)}
+                style={{ marginHorizontal: 20, marginBottom: 12 }}
+              >
+                <LinearGradient
+                  colors={[colors.accent, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.actionButton}
+                >
+                  <Text style={styles.actionButtonIcon}>📋</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.actionButtonTitle}>
+                      Meus Planos de Ação
+                    </Text>
+                    <Text style={styles.actionButtonDesc}>
+                      Acompanhe seus planos
+                    </Text>
+                  </View>
+                  <Text style={styles.actionArrow}>→</Text>
+                </LinearGradient>
+              </TouchableOpacity>
 
-          <View style={s.field}>
-            <Text style={[s.label, { color: colors.muted }]}>Prefeitura ID</Text>
-            <Text style={[s.value, { color: colors.muted }]}>{profile?.prefectureId || '—'}</Text>
-          </View>
-
-          {editing && (
-            <TouchableOpacity
-              style={[s.saveBtn, { backgroundColor: colors.primary }, saving && { opacity: 0.6 }]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={s.saveBtnText}>Salvar Alterações</Text>
-              }
-            </TouchableOpacity>
+              {/* Logout Button */}
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={[
+                  styles.logoutButton,
+                  { borderColor: colors.error },
+                  { marginHorizontal: 20 },
+                ]}
+              >
+                <Text style={[styles.logoutButtonText, { color: colors.error }]}>
+                  🚪 Sair da Conta
+                </Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
-
-        {/* Quick Actions */}
-        <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[s.cardTitle, { color: colors.foreground }]}>Ações</Text>
-          <TouchableOpacity
-            style={[s.actionRow, { borderBottomColor: colors.border }]}
-            onPress={() => router.push('/checklists' as any)}
-          >
-            <Text style={{ fontSize: 20 }}>📋</Text>
-            <Text style={[s.actionText, { color: colors.foreground }]}>Meus Questionários</Text>
-            <Text style={[s.actionArrow, { color: colors.muted }]}>›</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[s.actionRow, { borderBottomColor: colors.border }]}
-            onPress={() => router.push('/action-plans' as any)}
-          >
-            <Text style={{ fontSize: 20 }}>📌</Text>
-            <Text style={[s.actionText, { color: colors.foreground }]}>Planos de Ação</Text>
-            <Text style={[s.actionArrow, { color: colors.muted }]}>›</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Logout */}
-        <TouchableOpacity
-          style={[s.logoutBtn, { borderColor: colors.error }]}
-          onPress={handleLogout}
-        >
-          <Text style={[s.logoutText, { color: colors.error }]}>Sair da conta</Text>
-        </TouchableOpacity>
       </ScrollView>
     </ScreenContainer>
   );
 }
 
-const dynamicStyles = (colors: any) => StyleSheet.create({
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8,
+const styles = StyleSheet.create({
+  profileHeaderWrapper: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  title: { fontSize: 22, fontWeight: '800', color: colors.foreground },
-  editBtn: { borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
-  editBtnText: { fontSize: 13, fontWeight: '700' },
-  avatarSection: { alignItems: 'center', paddingVertical: 20, gap: 8 },
-  avatarCircle: {
-    width: 80, height: 80, borderRadius: 40,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6,
-    elevation: 4,
+  headerGradient: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
   },
-  avatarInitials: { color: '#fff', fontSize: 28, fontWeight: '800' },
-  avatarName: { fontSize: 18, fontWeight: '700' },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarContainer: {
+    marginRight: 4,
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  profileName: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
   roleBadge: {
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  roleText: { fontSize: 12, fontWeight: '700' },
-  card: {
-    marginHorizontal: 20, marginBottom: 16, borderRadius: 16,
-    padding: 20, borderWidth: 1,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4,
-    elevation: 2,
+  roleEmoji: {
+    fontSize: 14,
   },
-  cardTitle: { fontSize: 14, fontWeight: '700', marginBottom: 16 },
-  row: { flexDirection: 'row', marginBottom: 12 },
-  half: { flex: 1 },
-  field: { marginBottom: 12 },
-  label: { fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 15 },
-  immutable: { fontSize: 10, marginTop: 2 },
-  input: {
-    borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
+  roleLabel: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  contentContainer: {
+    paddingBottom: 20,
+  },
+  section: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  fieldContainer: {
+    gap: 6,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  fieldInput: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  infoLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  saveButton: {
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
     fontSize: 15,
+    fontWeight: '700',
   },
-  saveBtn: { borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 8 },
-  saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  actionRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, borderBottomWidth: 1,
+  cancelButton: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
   },
-  actionText: { flex: 1, fontSize: 14, fontWeight: '500' },
-  actionArrow: { fontSize: 20 },
-  logoutBtn: {
-    marginHorizontal: 20, borderRadius: 12, paddingVertical: 14,
-    alignItems: 'center', borderWidth: 1.5, marginBottom: 8,
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
-  logoutText: { fontSize: 15, fontWeight: '700' },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 12,
+  },
+  actionButtonIcon: {
+    fontSize: 20,
+  },
+  actionButtonTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  actionButtonDesc: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  actionArrow: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  logoutButton: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+  },
+  logoutButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });

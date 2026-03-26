@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  FlatList, KeyboardAvoidingView, Platform, ActivityIndicator,
+  FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '../../src/context/AuthContext';
@@ -15,12 +16,69 @@ interface Message {
   timestamp: Date;
 }
 
+const { width } = Dimensions.get('window');
+
 const WELCOME_MSG: Message = {
   id: 'welcome',
   role: 'assistant',
-  content: 'Olá! Sou o PSI, seu assistente de saúde mental. Este é um espaço seguro e confidencial. Como posso ajudá-lo hoje?',
+  content: 'Olá! Sou o PSI, seu assistente de saúde mental. Este é um espaço seguro e confidencial para compartilhar seus sentimentos e preocupações. Como posso ajudá-lo hoje?',
   timestamp: new Date(),
 };
+
+function MessageBubble({ message, colors }: any) {
+  const isUser = message.role === 'user';
+  const time = message.timestamp.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <View
+      style={[
+        styles.messageBubbleContainer,
+        { justifyContent: isUser ? 'flex-end' : 'flex-start' },
+      ]}
+    >
+      <View
+        style={[
+          styles.messageBubble,
+          isUser
+            ? {
+                backgroundColor: colors.primary,
+                borderBottomRightRadius: 4,
+              }
+            : {
+                backgroundColor: colors.surface,
+                borderBottomLeftRadius: 4,
+                borderColor: colors.border,
+                borderWidth: 1,
+              },
+        ]}
+      >
+        <Text
+          style={[
+            styles.messageText,
+            {
+              color: isUser ? '#fff' : colors.foreground,
+            },
+          ]}
+        >
+          {message.content}
+        </Text>
+        <Text
+          style={[
+            styles.messageTime,
+            {
+              color: isUser ? 'rgba(255,255,255,0.7)' : colors.muted,
+            },
+          ]}
+        >
+          {time}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 export default function PsiScreen() {
   const colors = useColors();
@@ -29,6 +87,10 @@ export default function PsiScreen() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+  }, [messages]);
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
@@ -41,23 +103,25 @@ export default function PsiScreen() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
 
     try {
-      // Call the server LLM endpoint
       const apiBase = getApiBaseUrl();
       const res = await fetch(`${apiBase}/api/psi-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
+          history: messages
+            .slice(-6)
+            .map((m) => ({ role: m.role, content: m.content })),
         }),
       });
 
-      let reply = 'Entendo como você está se sentindo. Estou aqui para ouvir. Pode me contar mais?';
+      let reply =
+        'Entendo como você está se sentindo. Estou aqui para ouvir. Pode me contar mais?';
       if (res.ok) {
         const data = await res.json();
         reply = data.reply ?? reply;
@@ -69,112 +133,134 @@ export default function PsiScreen() {
         content: reply,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages((prev) => [...prev, aiMsg]);
     } catch (e) {
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Estou aqui para ouvir você. Às vezes, colocar em palavras o que sentimos já ajuda muito. O que está passando pela sua cabeça?',
+        content:
+          'Estou aqui para ouvir você. Às vezes, colocar em palavras o que sentimos já ajuda muito. O que está passando pela sua cabeça?',
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages((prev) => [...prev, aiMsg]);
     } finally {
       setIsTyping(false);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [input, isTyping, messages]);
 
-  const s = dynamicStyles(colors);
-
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isUser = item.role === 'user';
-    return (
-      <View style={[s.msgRow, isUser && s.msgRowUser]}>
-        {!isUser && (
-          <View style={[s.avatar, { backgroundColor: colors.secondary }]}>
-            <Text style={s.avatarText}>PSI</Text>
-          </View>
-        )}
-        <View style={[
-          s.bubble,
-          isUser
-            ? [s.bubbleUser, { backgroundColor: colors.primary }]
-            : [s.bubbleAI, { backgroundColor: colors.surface, borderColor: colors.border }],
-        ]}>
-          <Text style={[s.bubbleText, { color: isUser ? '#fff' : colors.foreground }]}>
-            {item.content}
-          </Text>
-          <Text style={[s.bubbleTime, { color: isUser ? 'rgba(255,255,255,0.6)' : colors.muted }]}>
-            {item.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-        </View>
-      </View>
-    );
-  };
+  const dynamicStyles = useMemo(() => {
+    return StyleSheet.create({
+      header: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 16,
+      },
+      title: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: colors.foreground,
+        letterSpacing: -0.5,
+      },
+      subtitle: {
+        fontSize: 13,
+        color: colors.muted,
+        marginTop: 4,
+        fontWeight: '500',
+      },
+    });
+  }, [colors]);
 
   return (
-    <ScreenContainer edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={[s.header, { borderBottomColor: colors.border }]}>
-        <View style={[s.headerAvatar, { backgroundColor: colors.secondary }]}>
-          <Text style={s.headerAvatarText}>PSI</Text>
-        </View>
-        <View>
-          <Text style={[s.headerTitle, { color: colors.foreground }]}>Assistente PSI</Text>
-          <Text style={[s.headerSubtitle, { color: colors.success }]}>● Online — Confidencial</Text>
-        </View>
-      </View>
-
-      {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={item => item.id}
-        renderItem={renderMessage}
-        contentContainerStyle={s.msgList}
-        showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        ListFooterComponent={
-          isTyping ? (
-            <View style={[s.msgRow]}>
-              <View style={[s.avatar, { backgroundColor: colors.secondary }]}>
-                <Text style={s.avatarText}>PSI</Text>
-              </View>
-              <View style={[s.bubble, s.bubbleAI, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <View style={s.typingDots}>
-                  {[0, 1, 2].map(i => (
-                    <View key={i} style={[s.dot, { backgroundColor: colors.muted }]} />
-                  ))}
-                </View>
-              </View>
-            </View>
-          ) : null
-        }
-      />
-
-      {/* Input */}
+    <ScreenContainer>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={90}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <View style={[s.inputRow, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        {/* Header */}
+        <View style={dynamicStyles.header}>
+          <Text style={dynamicStyles.title}>PSI Chat</Text>
+          <Text style={dynamicStyles.subtitle}>
+            Suporte emocional com IA empática
+          </Text>
+        </View>
+
+        {/* Messages List */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <MessageBubble message={item} colors={colors} />
+          )}
+          contentContainerStyle={styles.messagesList}
+          scrollEnabled={true}
+          showsVerticalScrollIndicator={false}
+          onEndReachedThreshold={0.1}
+          onEndReached={() => flatListRef.current?.scrollToEnd()}
+        />
+
+        {/* Typing Indicator */}
+        {isTyping && (
+          <View style={styles.typingContainer}>
+            <View
+              style={[
+                styles.typingBubble,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.typingDot} />
+              <View style={styles.typingDot} />
+              <View style={styles.typingDot} />
+            </View>
+          </View>
+        )}
+
+        {/* Input Area */}
+        <View
+          style={[
+            styles.inputContainer,
+            { backgroundColor: colors.surface, borderTopColor: colors.border },
+          ]}
+        >
           <TextInput
-            style={[s.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                color: colors.foreground,
+              },
+            ]}
             placeholder="Digite sua mensagem..."
             placeholderTextColor={colors.muted}
             value={input}
             onChangeText={setInput}
             multiline
             maxLength={500}
+            editable={!isTyping}
             returnKeyType="send"
             onSubmitEditing={sendMessage}
           />
           <TouchableOpacity
-            style={[s.sendBtn, { backgroundColor: input.trim() ? colors.secondary : colors.border }]}
             onPress={sendMessage}
             disabled={!input.trim() || isTyping}
+            activeOpacity={0.7}
+            style={[
+              styles.sendButton,
+              { opacity: !input.trim() || isTyping ? 0.5 : 1 },
+            ]}
           >
-            <Text style={s.sendIcon}>↑</Text>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sendButtonGradient}
+            >
+              <Text style={styles.sendButtonText}>
+                {isTyping ? '...' : '→'}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -182,48 +268,88 @@ export default function PsiScreen() {
   );
 }
 
-const dynamicStyles = (colors: any) => StyleSheet.create({
-  header: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1,
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
   },
-  headerAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-    alignItems: 'center', justifyContent: 'center',
+  messagesList: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
   },
-  headerAvatarText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  headerTitle: { fontSize: 15, fontWeight: '700' },
-  headerSubtitle: { fontSize: 11, marginTop: 1 },
-  msgList: { padding: 16, paddingBottom: 8 },
-  msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12, gap: 8 },
-  msgRowUser: { flexDirection: 'row-reverse' },
-  avatar: {
-    width: 32, height: 32, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  messageBubbleContainer: {
+    flexDirection: 'row',
+    marginVertical: 4,
   },
-  avatarText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  bubble: {
-    maxWidth: '75%', borderRadius: 16, padding: 12,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 1 }, shadowRadius: 3,
+  messageBubble: {
+    maxWidth: width - 80,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    gap: 4,
   },
-  bubbleUser: { borderBottomRightRadius: 4 },
-  bubbleAI: { borderWidth: 1, borderBottomLeftRadius: 4 },
-  bubbleText: { fontSize: 15, lineHeight: 21 },
-  bubbleTime: { fontSize: 10, marginTop: 4, textAlign: 'right' },
-  typingDots: { flexDirection: 'row', gap: 4, padding: 4 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
-    padding: 12, borderTopWidth: 1,
+  messageText: {
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  messageTime: {
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  typingContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  typingBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#999',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
   },
   input: {
-    flex: 1, borderWidth: 1, borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, maxHeight: 100,
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    maxHeight: 100,
   },
-  sendBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    alignItems: 'center', justifyContent: 'center',
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  sendIcon: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  sendButtonGradient: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
 });

@@ -102,3 +102,14 @@
 - [ ] Tela de detalhe do relatório
 - [ ] Upload de evidências nos planos de ação (GESTOR+)
 - [ ] Benefits Screen (cupons, eventos, recompensas)
+
+
+## Redesign com Inspiração Visual (GitHub)
+- [x] Analisar paleta de cores e tipografia do novo design
+- [x] Atualizar Home Screen com layout profissional
+- [x] Redesenhar DDE Screen com gráficos bem feitos
+- [x] Atualizar Reports Screen com cards modernos
+- [x] Redesenhar PSI Chat com interface melhorada
+- [x] Atualizar Checklists com UX otimizada
+- [x] Redesenhar Profile Screen
+- [x] Testar e validar todas as telas
