@@ -11,18 +11,22 @@ import { useAuth } from '../../src/context/AuthContext';
 import { getActiveChecklists, getUserChecklistResponses } from '../../src/services/checklist.service';
 import { Checklist } from '../../src/types';
 import { AnimatedScreen } from '@/components/animations/animated-screen';
-import { AnimatedCard } from '@/components/animations/animated-card';
+import { ProgressBar } from '@/components/ui/progress-bar';
 
 const { width } = Dimensions.get('window');
 
-function ChecklistCard({ checklist, isCompleted, colors }: any) {
+function ChecklistCard({ checklist, isCompleted, inProgress, colors }: any) {
   const questionCount = checklist.questions?.length ?? 0;
+
+  const statusIcon = isCompleted ? '✅' : inProgress ? '⏳' : '⭕';
+  const statusLabel = isCompleted ? 'Concluído' : inProgress ? 'Em progresso' : 'Não iniciado';
+  const statusColor = isCompleted ? colors.success : inProgress ? colors.warning : colors.muted;
+  const ctaLabel = isCompleted ? 'Ver Respostas' : inProgress ? 'Continuar →' : 'Começar →';
 
   return (
     <TouchableOpacity
-      activeOpacity={0.8}
+      activeOpacity={0.85}
       onPress={() => router.push(`/checklists/${checklist.id}` as any)}
-      disabled={isCompleted}
     >
       <View
         style={[
@@ -30,88 +34,46 @@ function ChecklistCard({ checklist, isCompleted, colors }: any) {
           {
             backgroundColor: colors.surface,
             borderColor: colors.border,
-            opacity: isCompleted ? 0.7 : 1,
+            borderLeftColor: statusColor,
+            borderLeftWidth: 4,
           },
         ]}
       >
-        {/* Header */}
-        <View style={styles.cardHeader}>
-          <View style={{ flex: 1 }}>
-            <View style={styles.titleRow}>
-              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-                {checklist.title}
-              </Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: isCompleted
-                      ? colors.success + '20'
-                      : colors.warning + '20',
-                    borderColor: isCompleted ? colors.success : colors.warning,
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 10 }}>
-                  {isCompleted ? '✓' : '○'}
-                </Text>
-                <Text
-                  style={[
-                    styles.statusText,
-                    {
-                      color: isCompleted ? colors.success : colors.warning,
-                    },
-                  ]}
-                >
-                  {isCompleted ? 'Concluído' : 'Pendente'}
-                </Text>
-              </View>
-            </View>
-            {checklist.description && (
-              <Text
-                style={[styles.cardDesc, { color: colors.muted }]}
-                numberOfLines={2}
-              >
-                {checklist.description}
-              </Text>
-            )}
-          </View>
+        {/* Status Row */}
+        <View style={styles.statusRow}>
+          <Text style={styles.statusIcon}>{statusIcon}</Text>
+          <Text style={[styles.statusLabel, { color: statusColor }]}>{statusLabel}</Text>
         </View>
 
-        {/* Question Count */}
-        <View style={styles.metaRow}>
-          <View
-            style={[
-              styles.metaBadge,
-              { backgroundColor: colors.accent + '15', borderColor: colors.accent },
-            ]}
-          >
+        {/* Title & Description */}
+        <Text style={[styles.cardTitle, { color: colors.foreground }]}>{checklist.title}</Text>
+        {checklist.description && (
+          <Text style={[styles.cardDesc, { color: colors.muted }]} numberOfLines={2}>
+            {checklist.description}
+          </Text>
+        )}
+
+        {/* Meta + CTA */}
+        <View style={styles.cardFooter}>
+          <View style={[styles.metaBadge, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}>
             <Text style={[styles.metaText, { color: colors.accent }]}>
               📋 {questionCount} {questionCount === 1 ? 'questão' : 'questões'}
             </Text>
           </View>
-        </View>
-
-        {/* CTA Button */}
-        {!isCompleted && (
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => router.push(`/checklists/${checklist.id}` as any)}
-            style={{ marginTop: 12 }}
+            style={[
+              styles.ctaInline,
+              { backgroundColor: isCompleted ? colors.surface : colors.primary,
+                borderColor: isCompleted ? colors.border : colors.primary },
+            ]}
           >
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaButton}
-            >
-              <Text style={styles.ctaButtonText}>
-                Iniciar Questionário
-              </Text>
-              <Text style={styles.ctaArrow}>→</Text>
-            </LinearGradient>
+            <Text style={[styles.ctaInlineText, { color: isCompleted ? colors.foreground : '#fff' }]}>
+              {ctaLabel}
+            </Text>
           </TouchableOpacity>
-        )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -147,38 +109,16 @@ export default function ChecklistListScreen() {
 
   const completedCount = respondedIds.size;
   const totalCount = checklists.length;
-  const completionPercentage =
-    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  const dynamicStyles = useMemo(() => {
-    return StyleSheet.create({
-      header: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 16,
-      },
-      title: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: colors.foreground,
-        letterSpacing: -0.5,
-      },
-      subtitle: {
-        fontSize: 13,
-        color: colors.muted,
-        marginTop: 4,
-        fontWeight: '500',
-      },
-    });
-  }, [colors]);
+  const completionRatio = totalCount > 0 ? completedCount / totalCount : 0;
+  const completionPercentage = Math.round(completionRatio * 100);
 
   return (
     <AnimatedScreen animation="slideInUp" duration={400}>
       <ScreenContainer>
         {/* Header */}
-        <View style={dynamicStyles.header}>
-          <Text style={dynamicStyles.title}>Questionários</Text>
-          <Text style={dynamicStyles.subtitle}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.foreground }]}>Questionários</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>
             Responda os questionários ativos da sua prefeitura
           </Text>
         </View>
@@ -187,39 +127,29 @@ export default function ChecklistListScreen() {
       {totalCount > 0 && (
         <View style={styles.progressContainer}>
           <LinearGradient
-            colors={[colors.primary, colors.secondary]}
+            colors={[colors.primary, colors.accent]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.progressCard}
           >
             <View style={styles.progressContent}>
               <View>
-                <Text style={styles.progressLabel}>Sua Progressão</Text>
+                <Text style={styles.progressLabel}>Seu Progresso</Text>
                 <View style={styles.progressNumbers}>
                   <Text style={styles.progressValue}>{completedCount}</Text>
-                  <Text style={styles.progressTotal}>/{totalCount}</Text>
+                  <Text style={styles.progressTotal}> de {totalCount} completos</Text>
                 </View>
               </View>
               <View style={styles.progressCircle}>
                 <Text style={styles.progressPercent}>{completionPercentage}%</Text>
               </View>
             </View>
-            <View
-              style={[
-                styles.progressBar,
-                { backgroundColor: 'rgba(255,255,255,0.3)' },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${completionPercentage}%`,
-                    backgroundColor: 'rgba(255,255,255,0.8)',
-                  },
-                ]}
-              />
-            </View>
+            <ProgressBar
+              value={completionRatio}
+              color="rgba(255,255,255,0.9)"
+              backgroundColor="rgba(255,255,255,0.25)"
+              height={8}
+            />
           </LinearGradient>
         </View>
       )}
@@ -254,6 +184,7 @@ export default function ChecklistListScreen() {
             <ChecklistCard
               checklist={item}
               isCompleted={respondedIds.has(item.id!)}
+              inProgress={false}
               colors={colors}
             />
           )}
@@ -268,161 +199,43 @@ export default function ChecklistListScreen() {
 }
 
 const styles = StyleSheet.create({
-  centerContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+  // ─── Header ───
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+    marginBottom: 0,
   },
-  progressContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  progressCard: {
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-  },
-  progressContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  progressLabel: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  progressNumbers: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  progressValue: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: '800',
-    lineHeight: 36,
-  },
-  progressTotal: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  progressCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressPercent: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-    gap: 12,
-  },
-  card: {
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    gap: 12,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    flex: 1,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  cardDesc: {
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 16,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  metaBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  metaText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  ctaButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  ctaArrow: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  emptyContainer: {
-    borderRadius: 14,
-    padding: 32,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  emptyText: {
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
+  title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, marginTop: 4, fontWeight: '500' },
+  // ─── Progress ───
+  centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  progressContainer: { paddingHorizontal: 20, paddingTop: 16, marginBottom: 8 },
+  progressCard: { borderRadius: 18, padding: 18, gap: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 12, elevation: 8 },
+  progressContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  progressLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  progressNumbers: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  progressValue: { color: '#fff', fontSize: 32, fontWeight: '800', lineHeight: 38 },
+  progressTotal: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600' },
+  progressCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  progressPercent: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  // ─── List ───
+  listContent: { paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 40, gap: 12 },
+  // ─── Card ───
+  card: { borderRadius: 14, padding: 16, borderWidth: 1, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  statusIcon: { fontSize: 16 },
+  statusLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
+  cardTitle: { fontSize: 15, fontWeight: '700' },
+  cardDesc: { fontSize: 12, fontWeight: '500', lineHeight: 17, marginTop: -2 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  metaBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  metaText: { fontSize: 11, fontWeight: '600' },
+  ctaInline: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
+  ctaInlineText: { fontSize: 12, fontWeight: '700' },
+  // ─── Empty ───
+  emptyContainer: { borderRadius: 14, padding: 36, alignItems: 'center', borderWidth: 1 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  emptyText: { fontSize: 12, fontWeight: '500', textAlign: 'center' },
 });
