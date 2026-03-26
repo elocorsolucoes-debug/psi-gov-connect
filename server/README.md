@@ -26,6 +26,7 @@ server/
   db.ts              ← Query helpers (add database functions here)
   routers.ts         ← tRPC procedures (add API routes here)
   storage.ts         ← S3 storage helpers (can extend)
+  psi-chat.ts
   _core/             ← Framework-level code (don't modify)
 drizzle/
   schema.ts          ← Database tables & types (add your tables here)
