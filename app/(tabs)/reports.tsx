@@ -7,7 +7,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '../../src/context/AuthContext';
-import { createReport, getMyReports, getAllReports } from '../../src/services/reports.service';
+import { getMyReports, getAllReports, createReport } from '../../src/services/reports.service';
+import { AnimatedScreen } from '@/components/animations/animated-screen';
+import { AnimatedCard } from '@/components/animations/animated-card';
 import { Report, hasMinRole } from '../../src/types';
 
 const { width } = Dimensions.get('window');
@@ -318,14 +320,14 @@ export default function ReportsScreen() {
   }, [colors]);
 
   return (
-    <ScreenContainer>
-      {/* Header */}
-      <View style={dynamicStyles.header}>
-        <Text style={dynamicStyles.title}>Relatos</Text>
-        <Text style={dynamicStyles.subtitle}>
-          {isAdmin ? 'Todos os relatos da prefeitura' : 'Compartilhe suas preocupações'}
-        </Text>
-      </View>
+    <AnimatedScreen animation="slideInLeft" duration={400}>
+      <ScreenContainer>
+        <View style={dynamicStyles.header}>
+          <Text style={dynamicStyles.title}>Relatos</Text>
+          <Text style={dynamicStyles.subtitle}>
+            {isAdmin ? 'Todos os relatos da prefeitura' : 'Compartilhe suas preocupações'}
+          </Text>
+        </View>
 
       {loading ? (
         <View style={styles.centerContainer}>
@@ -385,7 +387,8 @@ export default function ReportsScreen() {
         colors={colors}
         profile={profile}
       />
-    </ScreenContainer>
+      </ScreenContainer>
+    </AnimatedScreen>
   );
 }
 

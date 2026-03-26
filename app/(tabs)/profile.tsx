@@ -10,6 +10,7 @@ import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { logout } from '../../src/services/auth.service';
 import { updateUserProfile } from '../../src/services/user.service';
+import { AnimatedScreen } from '@/components/animations/animated-screen';
 
 const { width } = Dimensions.get('window');
 
@@ -168,15 +169,16 @@ export default function ProfileScreen() {
   }, [colors]);
 
   return (
-    <ScreenContainer>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
-        {/* Header */}
-        <View style={dynamicStyles.headerTop}>
-          <Text style={dynamicStyles.title}>Perfil</Text>
-        </View>
+    <AnimatedScreen animation="slideInDown" duration={400}>
+      <ScreenContainer>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
+          {/* Header */}
+          <View style={dynamicStyles.headerTop}>
+            <Text style={dynamicStyles.title}>Perfil</Text>
+          </View>
 
         {/* Profile Header Card */}
         <View style={styles.profileHeaderWrapper}>
@@ -340,8 +342,9 @@ export default function ProfileScreen() {
             </>
           )}
         </View>
-      </ScrollView>
-    </ScreenContainer>
+        </ScrollView>
+      </ScreenContainer>
+    </AnimatedScreen>
   );
 }
 

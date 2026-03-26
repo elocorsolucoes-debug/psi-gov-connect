@@ -8,6 +8,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { getApiBaseUrl } from '@/constants/oauth';
+import { AnimatedScreen } from '@/components/animations/animated-screen';
 
 interface Message {
   id: string;
@@ -171,12 +172,13 @@ export default function PsiScreen() {
   }, [colors]);
 
   return (
-    <ScreenContainer>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+    <AnimatedScreen animation="fadeIn" duration={400}>
+      <ScreenContainer>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
         {/* Header */}
         <View style={dynamicStyles.header}>
           <Text style={dynamicStyles.title}>PSI Chat</Text>
@@ -263,8 +265,9 @@ export default function PsiScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </ScreenContainer>
+        </KeyboardAvoidingView>
+      </ScreenContainer>
+    </AnimatedScreen>
   );
 }
 

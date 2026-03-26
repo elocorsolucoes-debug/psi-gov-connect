@@ -10,6 +10,8 @@ import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { getActiveChecklists, getUserChecklistResponses } from '../../src/services/checklist.service';
 import { Checklist } from '../../src/types';
+import { AnimatedScreen } from '@/components/animations/animated-screen';
+import { AnimatedCard } from '@/components/animations/animated-card';
 
 const { width } = Dimensions.get('window');
 
@@ -171,14 +173,15 @@ export default function ChecklistListScreen() {
   }, [colors]);
 
   return (
-    <ScreenContainer>
-      {/* Header */}
-      <View style={dynamicStyles.header}>
-        <Text style={dynamicStyles.title}>Questionários</Text>
-        <Text style={dynamicStyles.subtitle}>
-          Responda os questionários ativos da sua prefeitura
-        </Text>
-      </View>
+    <AnimatedScreen animation="slideInUp" duration={400}>
+      <ScreenContainer>
+        {/* Header */}
+        <View style={dynamicStyles.header}>
+          <Text style={dynamicStyles.title}>Questionários</Text>
+          <Text style={dynamicStyles.subtitle}>
+            Responda os questionários ativos da sua prefeitura
+          </Text>
+        </View>
 
       {/* Progress Card */}
       {totalCount > 0 && (
@@ -259,7 +262,8 @@ export default function ChecklistListScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </ScreenContainer>
+      </ScreenContainer>
+    </AnimatedScreen>
   );
 }
 

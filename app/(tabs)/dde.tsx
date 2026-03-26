@@ -8,6 +8,8 @@ import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { saveDDEEntry, getMyDDEEntries } from '../../src/services/dde.service';
 import { DDEEntry, MoodType } from '../../src/types';
+import { AnimatedScreen } from '@/components/animations/animated-screen';
+import { AnimatedCard } from '@/components/animations/animated-card';
 
 const MOODS: { type: MoodType; emoji: string; label: string; color: string }[] = [
   { type: 'excellent', emoji: '😊', label: 'Excelente', color: '#2ECC71' },
@@ -78,7 +80,8 @@ export default function DDEScreen() {
   const moodColor = selectedMood ? MOODS.find(m => m.type === selectedMood)?.color : colors.border;
 
   return (
-    <ScreenContainer>
+    <AnimatedScreen animation="slideInRight" duration={400}>
+      <ScreenContainer>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         {/* Header */}
         <View style={s.header}>
@@ -203,7 +206,8 @@ export default function DDEScreen() {
           })
         )}
       </ScrollView>
-    </ScreenContainer>
+      </ScreenContainer>
+    </AnimatedScreen>
   );
 }
 

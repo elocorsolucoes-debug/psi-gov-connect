@@ -113,3 +113,11 @@
 - [x] Atualizar Checklists com UX otimizada
 - [x] Redesenhar Profile Screen
 - [x] Testar e validar todas as telas
+
+
+## Animações de Transição
+- [x] Criar componentes de animação reutilizáveis (FadeIn, SlideIn)
+- [x] Implementar fade e slide nas telas principais
+- [x] Adicionar animações nos modais e overlays
+- [x] Animar cards e listas com stagger effect
+- [x] Testar animações em todas as telas

@@ -6,6 +6,8 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { hasMinRole } from '../../src/types';
+import { AnimatedScreen } from '@/components/animations/animated-screen';
+import { AnimatedCard } from '@/components/animations/animated-card';
 
 const { width } = Dimensions.get('window');
 
@@ -334,11 +336,12 @@ export default function HomeScreen() {
   }, [colors]);
 
   return (
-    <ScreenContainer>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
-      >
+    <AnimatedScreen animation="fadeIn" duration={500}>
+      <ScreenContainer>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 32 }}
+        >
         {/* Header */}
         <View style={dynamicStyles.header}>
           <View style={dynamicStyles.headerContent}>
@@ -370,8 +373,9 @@ export default function HomeScreen() {
             ? <GestorDashboard colors={colors} />
             : <ServidorDashboard colors={colors} />
         }
-      </ScrollView>
-    </ScreenContainer>
+        </ScrollView>
+      </ScreenContainer>
+    </AnimatedScreen>
   );
 }
 
