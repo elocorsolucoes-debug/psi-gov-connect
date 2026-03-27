@@ -1,7 +1,5 @@
 /** @type {const} */
 const themeColors = {
-<<<<<<< Updated upstream
-  // ─── Primary Actions ──────────────────────────
   primary:    { light: '#0D47A1', dark: '#1E88E5' }, // Deep blue actions
   accent:     { light: '#0097A7', dark: '#00BCD4' }, // Teal accent (was secondary)
   secondary:  { light: '#0097A7', dark: '#00BCD4' }, // Kept for backward-compat
@@ -20,7 +18,7 @@ const themeColors = {
   success:    { light: '#2E7D32', dark: '#4CAF50' }, // Green calm
   warning:    { light: '#E65100', dark: '#FF9800' }, // Orange professional
   error:      { light: '#C62828', dark: '#F44336' }, // Red
-=======
+
   // Deep Ocean (Dark Mode - Padrão)
   primary:    { light: '#0D47A1', dark: '#1E88E5' },
   accent:     { light: '#0097A7', dark: '#00BCD4' },
@@ -34,7 +32,6 @@ const themeColors = {
   warning:    { light: '#E65100', dark: '#FF9800' },
   error:      { light: '#C62828', dark: '#F44336' },
   tint:       { light: '#0097A7', dark: '#00BCD4' },
->>>>>>> Stashed changes
 };
 
 module.exports = { themeColors };
